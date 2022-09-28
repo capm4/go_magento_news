@@ -1,0 +1,1 @@
+30 7 * * * ./.bin/bot >> /var/log/bot.log

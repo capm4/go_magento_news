@@ -1,0 +1,9 @@
+version: "3.8"
+services:
+  magento_news_bot:
+    build: ./
+    working_dir: /bot
+    command:
+      - /bot/bin/bot
+    volumes:
+      - ./:/bot
