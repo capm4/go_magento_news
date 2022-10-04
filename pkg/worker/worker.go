@@ -17,7 +17,7 @@ func GetLinks(doc Document) []string {
 
 func getLinks(doc Document) ([]string, error) {
 	var links []string
-	index := 1
+	index := 0
 	response, err := http.Get(doc.Url)
 	if err != nil {
 		logrus.Warning(fmt.Sprintf("error while get link. Error : %s", err))
@@ -37,7 +37,7 @@ func getLinks(doc Document) ([]string, error) {
 		}
 		index++
 	}
-	if index == 1 {
+	if index == 0 {
 		return []string{}, nil
 	}
 	return links[:index], nil
