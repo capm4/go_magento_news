@@ -31,7 +31,8 @@ func getLinks(doc Document) ([]string, error) {
 			links = append(links, href)
 		}
 	})
-	for _, link := range links {
+	uniqueLinks := unique(links)
+	for _, link := range uniqueLinks {
 		if link == doc.LastUrl {
 			break
 		}
@@ -41,4 +42,16 @@ func getLinks(doc Document) ([]string, error) {
 		return []string{}, nil
 	}
 	return links[:index], nil
+}
+
+func unique(s []string) []string {
+	inResult := make(map[string]bool)
+	var result []string
+	for _, str := range s {
+		if _, ok := inResult[str]; !ok {
+			inResult[str] = true
+			result = append(result, str)
+		}
+	}
+	return result
 }
