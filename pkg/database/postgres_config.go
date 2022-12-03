@@ -21,19 +21,15 @@ func NewPostgresConfigDB(db *PostgresDB) (PostgressConfigInterface, error) {
 }
 
 // get document by id
-func (p *PostgresConfig) GetByPath(path string) *sql.Row {
-	ctx, cancel := context.WithTimeout(context.Background(), TimeOut)
-	defer cancel()
+func (p *PostgresConfig) GetByPath(path string, ctx context.Context) *sql.Row {
 	row := p.db.client.QueryRowContext(ctx, createSelect(tableNameConfig, "WHERE path = $1"), path)
 
 	return row
 }
 
 // update document with value
-func (p *PostgresConfig) UpdateById(id int64, path, value string) (int64, error) {
+func (p *PostgresConfig) UpdateById(id int64, path, value string, ctx context.Context) (int64, error) {
 	query := createUpdateQuery(tableNameConfig, "path = $1, value = $2")
-	ctx, cancel := context.WithTimeout(context.Background(), TimeOut)
-	defer cancel()
 	tx, err := p.db.client.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
@@ -54,10 +50,8 @@ func (p *PostgresConfig) UpdateById(id int64, path, value string) (int64, error)
 }
 
 // delete document by id
-func (p *PostgresConfig) DeleteById(id int64) (int64, error) {
+func (p *PostgresConfig) DeleteById(id int64, ctx context.Context) (int64, error) {
 	query := createDeleteQuery(tableNameConfig, "WHERE id = $1")
-	ctx, cancel := context.WithTimeout(context.Background(), TimeOut)
-	defer cancel()
 	tx, err := p.db.client.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
@@ -78,10 +72,8 @@ func (p *PostgresConfig) DeleteById(id int64) (int64, error) {
 }
 
 // create config
-func (p *PostgresConfig) Insert(path, value string) (int64, error) {
+func (p *PostgresConfig) Insert(path, value string, ctx context.Context) (int64, error) {
 	query := createInsertQuery(tableNameConfig, "(path, value) VALUES ($1, $2)")
-	ctx, cancel := context.WithTimeout(context.Background(), TimeOut)
-	defer cancel()
 	tx, err := p.db.client.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err

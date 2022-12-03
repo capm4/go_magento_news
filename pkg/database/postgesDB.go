@@ -5,13 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"magento/bot/pkg/model"
-	"time"
 
 	"github.com/doug-martin/goqu/v9"
-)
-
-const (
-	TimeOut = 10 * time.Second
 )
 
 type PostgresDB struct {

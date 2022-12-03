@@ -19,8 +19,10 @@ func NewWebsiteRepository(client database.PostgressWebsitesInterface) WebsiteRep
 
 //get all websites from DB
 func (r *WebsiteRepository) GetAll(ctx context.Context) ([]*model.Website, error) {
+	c, cancel := context.WithTimeout(ctx, TimeOut)
+	defer cancel()
 	websites := []*model.Website{}
-	rows, err := r.client.GetAll(ctx)
+	rows, err := r.client.GetAll(c)
 	if err != nil {
 		return nil, err
 	}
@@ -39,8 +41,10 @@ func (r *WebsiteRepository) GetAll(ctx context.Context) ([]*model.Website, error
 
 //get document by id
 func (r *WebsiteRepository) GetById(id int64, ctx context.Context) (*model.Website, error) {
+	c, cancel := context.WithTimeout(ctx, TimeOut)
+	defer cancel()
 	var doc model.Website
-	row, err := r.client.GetById(id, ctx)
+	row, err := r.client.GetById(id, c)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +62,9 @@ func (r *WebsiteRepository) GetById(id int64, ctx context.Context) (*model.Websi
 //update website
 //return true if ok and false and error
 func (r *WebsiteRepository) Update(website *model.Website, ctx context.Context) (bool, error) {
-	rowsAffected, err := r.client.Update(*website, ctx)
+	c, cancel := context.WithTimeout(ctx, TimeOut)
+	defer cancel()
+	rowsAffected, err := r.client.Update(*website, c)
 	if err != nil && rowsAffected < 1 {
 		logrus.Warning(err.Error())
 		return false, fmt.Errorf("website with id %d doesn't update", website.Id)
@@ -69,7 +75,9 @@ func (r *WebsiteRepository) Update(website *model.Website, ctx context.Context) 
 //delete website
 //return true if ok and false and error
 func (r *WebsiteRepository) Delete(id int64, ctx context.Context) (bool, error) {
-	rowsAffected, err := r.client.DeleteById(id, ctx)
+	c, cancel := context.WithTimeout(ctx, TimeOut)
+	defer cancel()
+	rowsAffected, err := r.client.DeleteById(id, c)
 	if err != nil {
 		logrus.Warning(err.Error())
 		return false, fmt.Errorf("website with id %d doesn't deleted", id)
@@ -83,7 +91,9 @@ func (r *WebsiteRepository) Delete(id int64, ctx context.Context) (bool, error) 
 //create website
 //return true if ok and false and error
 func (r *WebsiteRepository) Create(website *model.Website, ctx context.Context) (int64, error) {
-	id, err := r.client.Insert(*website, ctx)
+	c, cancel := context.WithTimeout(ctx, TimeOut)
+	defer cancel()
+	id, err := r.client.Insert(*website, c)
 	if err != nil && id < 1 {
 		logrus.Warning(err.Error())
 		return 0, fmt.Errorf("website doesn't created")

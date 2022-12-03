@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"magento/bot/pkg/model"
-	"time"
 
 	_ "github.com/lib/pq"
 )
@@ -36,13 +35,11 @@ func NewPostgresWebsiteDB(db *PostgresDB) (PostgressWebsitesInterface, error) {
 
 // get all documents
 func (p *PostgresWebsites) GetAll(ctx context.Context) (*sql.Rows, error) {
-	c, cancel := context.WithTimeout(ctx, 1000*time.Second)
-	defer cancel()
 	query, _, err := createSelectStm(tableNameWebsite).ToSQL()
 	if err != nil {
 		return nil, err
 	}
-	rows, err := p.db.client.QueryContext(c, query)
+	rows, err := p.db.client.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
 	}

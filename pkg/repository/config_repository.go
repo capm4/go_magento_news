@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"magento/bot/pkg/database"
 	"magento/bot/pkg/model"
@@ -17,9 +18,9 @@ func NewConfigRepository(client database.PostgressConfigInterface) ConfigReposit
 }
 
 //get document by id
-func (r *ConfigRepository) GetByPath(path string) (*model.Config, error) {
+func (r *ConfigRepository) GetByPath(path string, ctx context.Context) (*model.Config, error) {
 	var con model.Config
-	row := r.client.GetByPath(path)
+	row := r.client.GetByPath(path, ctx)
 	if row.Err() != nil {
 		return nil, row.Err()
 	}
@@ -33,8 +34,8 @@ func (r *ConfigRepository) GetByPath(path string) (*model.Config, error) {
 
 //update config
 //return true if ok and false and error
-func (r *ConfigRepository) UpdateConfig(con *model.Config) (bool, error) {
-	rowsAffected, err := r.client.UpdateById(con.Id, con.Path, con.Value)
+func (r *ConfigRepository) UpdateConfig(con *model.Config, ctx context.Context) (bool, error) {
+	rowsAffected, err := r.client.UpdateById(con.Id, con.Path, con.Value, ctx)
 	if err != nil && rowsAffected < 1 {
 		logrus.Warning(err.Error())
 		return false, fmt.Errorf("config with id %d doesn't update", con.Id)
@@ -44,8 +45,8 @@ func (r *ConfigRepository) UpdateConfig(con *model.Config) (bool, error) {
 
 //delete config
 //return true if ok and false and error
-func (r *ConfigRepository) DeleteConfig(id int64) (bool, error) {
-	rowsAffected, err := r.client.DeleteById(id)
+func (r *ConfigRepository) DeleteConfig(id int64, ctx context.Context) (bool, error) {
+	rowsAffected, err := r.client.DeleteById(id, ctx)
 	if err != nil && rowsAffected < 1 {
 		logrus.Warning(err.Error())
 		return false, fmt.Errorf("config with id %d doesn't deleted", id)
@@ -55,8 +56,8 @@ func (r *ConfigRepository) DeleteConfig(id int64) (bool, error) {
 
 //create config
 //return true if ok and false and error
-func (r *ConfigRepository) CreateConfig(con *model.Config) (int64, error) {
-	id, err := r.client.Insert(con.Path, con.Value)
+func (r *ConfigRepository) CreateConfig(con *model.Config, ctx context.Context) (int64, error) {
+	id, err := r.client.Insert(con.Path, con.Value, ctx)
 	if err != nil && id < 1 {
 		logrus.Warning(err.Error())
 		return 0, fmt.Errorf("config doesn't created")

@@ -19,8 +19,10 @@ func NewUserRepository(client database.PostgressUserInterface) UserRepositoryInt
 
 //get user by loger
 func (r *UserRepository) GetByLogin(login string, ctx context.Context) (*model.User, error) {
+	c, cancel := context.WithTimeout(ctx, TimeOut)
+	defer cancel()
 	var user model.User
-	row, err := r.client.GetByLogin(login, ctx)
+	row, err := r.client.GetByLogin(login, c)
 	if err != nil {
 		return nil, err
 	}
@@ -40,8 +42,10 @@ func (r *UserRepository) GetByLogin(login string, ctx context.Context) (*model.U
 
 //check if user exist by login
 func (r *UserRepository) IsExist(login string, ctx context.Context) (bool, error) {
+	c, cancel := context.WithTimeout(ctx, TimeOut)
+	defer cancel()
 	var user model.User
-	row, err := r.client.GetByLogin(login, ctx)
+	row, err := r.client.GetByLogin(login, c)
 	if err != nil {
 		return false, err
 	}
@@ -56,7 +60,9 @@ func (r *UserRepository) IsExist(login string, ctx context.Context) (bool, error
 //update user
 //return true if ok and false and error
 func (r *UserRepository) UpdateUser(user *model.User, ctx context.Context) (bool, error) {
-	rowsAffected, err := r.client.Update(*user, ctx)
+	c, cancel := context.WithTimeout(ctx, TimeOut)
+	defer cancel()
+	rowsAffected, err := r.client.Update(*user, c)
 	if err != nil && rowsAffected < 1 {
 		logrus.Warning(err.Error())
 		return false, fmt.Errorf("user with id %d doesn't update", user.Id)
@@ -67,7 +73,9 @@ func (r *UserRepository) UpdateUser(user *model.User, ctx context.Context) (bool
 //create user
 //return true if ok and false and error
 func (r *UserRepository) CreateUser(user *model.User, ctx context.Context) (int64, error) {
-	id, err := r.client.Insert(*user, ctx)
+	c, cancel := context.WithTimeout(ctx, TimeOut)
+	defer cancel()
+	id, err := r.client.Insert(*user, c)
 	if err != nil && id < 1 {
 		logrus.Warning(err.Error())
 		return 0, fmt.Errorf("user doesn't created")
