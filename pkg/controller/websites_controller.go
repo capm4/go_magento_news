@@ -20,7 +20,7 @@ func NewWebsiteController(docRepository repository.WebsiteRepositoryInterface) (
 }
 
 func (d *WebsiteController) GetWebsites(c echo.Context) error {
-	websites, err := d.websiteRepository.GetAll()
+	websites, err := d.websiteRepository.GetAll(c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
 	}
@@ -38,7 +38,7 @@ func (d *WebsiteController) GetWebsitesById(c echo.Context) error {
 		logrus.Warn(err.Error())
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse("error while getting website"))
 	}
-	website, err := d.websiteRepository.GetById(id)
+	website, err := d.websiteRepository.GetById(id, c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
 	}
@@ -50,7 +50,7 @@ func (d *WebsiteController) Create(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
 	}
-	id, err := d.websiteRepository.Create(website)
+	id, err := d.websiteRepository.Create(website, c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
 	}
@@ -69,7 +69,7 @@ func (d *WebsiteController) DeleteById(c echo.Context) error {
 		logrus.Warn(err.Error())
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse("error while deleting website"))
 	}
-	ok, err := d.websiteRepository.Delete(id)
+	ok, err := d.websiteRepository.Delete(id, c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
 	}

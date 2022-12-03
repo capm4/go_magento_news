@@ -23,7 +23,8 @@ func (uc *UserController) AuthUser(c echo.Context, secret string) error {
 	if u.Login == "" || u.Password == "" {
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse("login and password are required param"))
 	}
-	user, err := uc.userRepository.GetByLogin(u.Login)
+	c.Request().Context()
+	user, err := uc.userRepository.GetByLogin(u.Login, c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
 	}

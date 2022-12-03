@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"magento/bot/pkg/config"
@@ -47,7 +48,7 @@ func main() {
 
 func checkIfUserExist(login string) bool {
 	repo := getUserRepository()
-	isExist, err := repo.IsExist(login)
+	isExist, err := repo.IsExist(login, context.Background())
 	if err != nil {
 		logrus.Fatal(err.Error())
 	}
@@ -68,7 +69,7 @@ func createPasswordHash(password string) string {
 
 func saveUser(user *model.User) {
 	repo := getUserRepository()
-	res, err := repo.CreateUser(user)
+	res, err := repo.CreateUser(user, context.Background())
 	if err != nil {
 		logrus.Fatal(err.Error())
 	}

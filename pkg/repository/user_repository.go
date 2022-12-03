@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"magento/bot/pkg/database"
 	"magento/bot/pkg/model"
@@ -17,9 +18,9 @@ func NewUserRepository(client database.PostgressUserInterface) UserRepositoryInt
 }
 
 //get user by loger
-func (r *UserRepository) GetByLogin(login string) (*model.User, error) {
+func (r *UserRepository) GetByLogin(login string, ctx context.Context) (*model.User, error) {
 	var user model.User
-	row, err := r.client.GetByLogin(login)
+	row, err := r.client.GetByLogin(login, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -27,17 +28,20 @@ func (r *UserRepository) GetByLogin(login string) (*model.User, error) {
 		return nil, row.Err()
 	}
 	row.Scan(&user.Id, &user.Name, &user.Login, &user.Password, &user.UserRole, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
-	if user.Id == 0 || user.UserRole == "" {
+	if user.Login == "" {
 		return &user, fmt.Errorf("there no user with login %s", login)
+	}
+	if !user.IsActive {
+		return &user, fmt.Errorf("user with login %s is not active", login)
 	}
 
 	return &user, nil
 }
 
 //check if user exist by login
-func (r *UserRepository) IsExist(login string) (bool, error) {
+func (r *UserRepository) IsExist(login string, ctx context.Context) (bool, error) {
 	var user model.User
-	row, err := r.client.GetByLogin(login)
+	row, err := r.client.GetByLogin(login, ctx)
 	if err != nil {
 		return false, err
 	}
@@ -51,8 +55,8 @@ func (r *UserRepository) IsExist(login string) (bool, error) {
 
 //update user
 //return true if ok and false and error
-func (r *UserRepository) UpdateUser(user *model.User) (bool, error) {
-	rowsAffected, err := r.client.Update(*user)
+func (r *UserRepository) UpdateUser(user *model.User, ctx context.Context) (bool, error) {
+	rowsAffected, err := r.client.Update(*user, ctx)
 	if err != nil && rowsAffected < 1 {
 		logrus.Warning(err.Error())
 		return false, fmt.Errorf("user with id %d doesn't update", user.Id)
@@ -62,8 +66,8 @@ func (r *UserRepository) UpdateUser(user *model.User) (bool, error) {
 
 //create user
 //return true if ok and false and error
-func (r *UserRepository) CreateUser(user *model.User) (int64, error) {
-	id, err := r.client.Insert(*user)
+func (r *UserRepository) CreateUser(user *model.User, ctx context.Context) (int64, error) {
+	id, err := r.client.Insert(*user, ctx)
 	if err != nil && id < 1 {
 		logrus.Warning(err.Error())
 		return 0, fmt.Errorf("user doesn't created")

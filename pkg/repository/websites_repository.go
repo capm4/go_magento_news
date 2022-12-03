@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"magento/bot/pkg/database"
 	"magento/bot/pkg/model"
@@ -16,30 +17,30 @@ func NewWebsiteRepository(client database.PostgressWebsitesInterface) WebsiteRep
 	return &WebsiteRepository{client: client}
 }
 
-//get all documents from DB
-func (r *WebsiteRepository) GetAll() ([]*model.Website, error) {
-	var documents []*model.Website
-	rows, err := r.client.GetAll()
+//get all websites from DB
+func (r *WebsiteRepository) GetAll(ctx context.Context) ([]*model.Website, error) {
+	websites := []*model.Website{}
+	rows, err := r.client.GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
-		document := model.Website{}
-		err = rows.Scan(&document.Id, &document.Url, &document.Selector, &document.Attribute, &document.LastUrl)
+		website := model.Website{}
+		err = rows.Scan(&website.Id, &website.Url, &website.Selector, &website.Attribute, &website.LastUrl)
 		if err != nil {
 			logrus.Warning(err.Error())
 		} else {
-			documents = append(documents, &document)
+			websites = append(websites, &website)
 		}
 	}
 
-	return documents, nil
+	return websites, nil
 }
 
 //get document by id
-func (r *WebsiteRepository) GetById(id int64) (*model.Website, error) {
+func (r *WebsiteRepository) GetById(id int64, ctx context.Context) (*model.Website, error) {
 	var doc model.Website
-	row, err := r.client.GetById(id)
+	row, err := r.client.GetById(id, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -56,8 +57,8 @@ func (r *WebsiteRepository) GetById(id int64) (*model.Website, error) {
 
 //update website
 //return true if ok and false and error
-func (r *WebsiteRepository) Update(website *model.Website) (bool, error) {
-	rowsAffected, err := r.client.Update(*website)
+func (r *WebsiteRepository) Update(website *model.Website, ctx context.Context) (bool, error) {
+	rowsAffected, err := r.client.Update(*website, ctx)
 	if err != nil && rowsAffected < 1 {
 		logrus.Warning(err.Error())
 		return false, fmt.Errorf("website with id %d doesn't update", website.Id)
@@ -67,8 +68,8 @@ func (r *WebsiteRepository) Update(website *model.Website) (bool, error) {
 
 //delete website
 //return true if ok and false and error
-func (r *WebsiteRepository) Delete(id int64) (bool, error) {
-	rowsAffected, err := r.client.DeleteById(id)
+func (r *WebsiteRepository) Delete(id int64, ctx context.Context) (bool, error) {
+	rowsAffected, err := r.client.DeleteById(id, ctx)
 	if err != nil {
 		logrus.Warning(err.Error())
 		return false, fmt.Errorf("website with id %d doesn't deleted", id)
@@ -81,8 +82,8 @@ func (r *WebsiteRepository) Delete(id int64) (bool, error) {
 
 //create website
 //return true if ok and false and error
-func (r *WebsiteRepository) Create(website *model.Website) (int64, error) {
-	id, err := r.client.Insert(*website)
+func (r *WebsiteRepository) Create(website *model.Website, ctx context.Context) (int64, error) {
+	id, err := r.client.Insert(*website, ctx)
 	if err != nil && id < 1 {
 		logrus.Warning(err.Error())
 		return 0, fmt.Errorf("website doesn't created")

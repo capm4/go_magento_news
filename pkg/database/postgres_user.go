@@ -22,29 +22,27 @@ func NewPostgresUserDB(db *PostgresDB) (PostgressUserInterface, error) {
 }
 
 // get user by login
-func (p *PostgresUser) GetByLogin(login string) (*sql.Row, error) {
+func (p *PostgresUser) GetByLogin(login string, ctx context.Context) (*sql.Row, error) {
 	whereStm := []PostgresWhereParam{}
 	whereStm = append(whereStm, PostgresWhereParam{Column: "login", Type: "eq", Value: login})
 	query, _, err := createSelectWhereStm(tableNameUser, whereStm).ToSQL()
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), TimeOut)
-	defer cancel()
 	row := p.db.client.QueryRowContext(ctx, query)
-
+	if row.Err() != nil {
+		return nil, row.Err()
+	}
 	return row, nil
 }
 
 // update user
-func (p *PostgresUser) Update(user model.User) (int64, error) {
+func (p *PostgresUser) Update(user model.User, ctx context.Context) (int64, error) {
 	users := append([]model.User{}, user)
 	query, _, err := createUpdateStm(tableNameUser, users).ToSQL()
 	if err != nil {
 		return 0, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), TimeOut)
-	defer cancel()
 	tx, err := p.db.client.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
@@ -65,13 +63,11 @@ func (p *PostgresUser) Update(user model.User) (int64, error) {
 }
 
 // create user
-func (p *PostgresUser) Insert(user model.User) (int64, error) {
+func (p *PostgresUser) Insert(user model.User, ctx context.Context) (int64, error) {
 	query, _, err := createInsertStm(tableNameUser, user).ToSQL()
 	if err != nil {
 		return 0, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), TimeOut)
-	defer cancel()
 	tx, err := p.db.client.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err

@@ -35,14 +35,14 @@ func NewPostgresWebsiteDB(db *PostgresDB) (PostgressWebsitesInterface, error) {
 }
 
 // get all documents
-func (p *PostgresWebsites) GetAll() (*sql.Rows, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), TimeOut)
+func (p *PostgresWebsites) GetAll(ctx context.Context) (*sql.Rows, error) {
+	c, cancel := context.WithTimeout(ctx, 1000*time.Second)
 	defer cancel()
 	query, _, err := createSelectStm(tableNameWebsite).ToSQL()
 	if err != nil {
 		return nil, err
 	}
-	rows, err := p.db.client.QueryContext(ctx, query)
+	rows, err := p.db.client.QueryContext(c, query)
 	if err != nil {
 		return nil, err
 	}
@@ -50,9 +50,7 @@ func (p *PostgresWebsites) GetAll() (*sql.Rows, error) {
 }
 
 // get document by id
-func (p *PostgresWebsites) GetById(id int64) (*sql.Row, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+func (p *PostgresWebsites) GetById(id int64, ctx context.Context) (*sql.Row, error) {
 	whereStm := []PostgresWhereParam{}
 	whereStm = append(whereStm, PostgresWhereParam{Column: "id", Type: "eq", Value: id})
 	query, _, err := createSelectWhereStm(tableNameWebsite, whereStm).ToSQL()
@@ -60,19 +58,20 @@ func (p *PostgresWebsites) GetById(id int64) (*sql.Row, error) {
 		return nil, err
 	}
 	row := p.db.client.QueryRowContext(ctx, query)
+	if row.Err() != nil {
+		return nil, row.Err()
+	}
 
 	return row, nil
 }
 
 // update website
-func (p *PostgresWebsites) Update(website model.Website) (int64, error) {
+func (p *PostgresWebsites) Update(website model.Website, ctx context.Context) (int64, error) {
 	websites := append([]model.Website{}, website)
 	query, _, err := createUpdateStm(tableNameWebsite, websites).ToSQL()
 	if err != nil {
 		return 0, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 	tx, err := p.db.client.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
@@ -94,10 +93,8 @@ func (p *PostgresWebsites) Update(website model.Website) (int64, error) {
 }
 
 // update document with value
-func (p *PostgresWebsites) UpdateById(id int64, url, selector, attribute, last_url string) (int64, error) {
+func (p *PostgresWebsites) UpdateById(id int64, url, selector, attribute, last_url string, ctx context.Context) (int64, error) {
 	query := createUpdateQuery(tableNameWebsite, "url = $1, selector = $2, attribute = $3, last_url = $4 WHERE id = $5")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 	tx, err := p.db.client.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
@@ -118,14 +115,12 @@ func (p *PostgresWebsites) UpdateById(id int64, url, selector, attribute, last_u
 }
 
 // delete website by id
-func (p *PostgresWebsites) DeleteById(id int64) (int64, error) {
+func (p *PostgresWebsites) DeleteById(id int64, ctx context.Context) (int64, error) {
 	query, _, err := createRemoveStm(tableNameWebsite, "id", id).ToSQL()
 	if err != nil {
 		return 0, err
 	}
 	fmt.Println(query)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 	tx, err := p.db.client.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
@@ -146,14 +141,12 @@ func (p *PostgresWebsites) DeleteById(id int64) (int64, error) {
 }
 
 // create document by id
-func (p *PostgresWebsites) Insert(website model.Website) (int64, error) {
+func (p *PostgresWebsites) Insert(website model.Website, ctx context.Context) (int64, error) {
 	t := WebsiteToDb(&website)
 	query, _, err := createInsertStm(tableNameWebsite, t).Returning("id").ToSQL()
 	if err != nil {
 		return 0, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 	tx, err := p.db.client.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err

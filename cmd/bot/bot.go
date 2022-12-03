@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"magento/bot/pkg/bot"
 	"magento/bot/pkg/config"
@@ -49,7 +50,7 @@ func RunBot(registry *registry.Registry) {
 	if err != nil {
 		logrus.Warn(err)
 	}
-	websites, err := registry.WebRepository.GetAll()
+	websites, err := registry.WebRepository.GetAll(context.Background())
 	if err != nil {
 		logrus.Warn(err)
 	}
@@ -60,7 +61,7 @@ func RunBot(registry *registry.Registry) {
 			if len(links) > 0 {
 				lastLink := links[0]
 				website.LastUrl = lastLink
-				registry.WebRepository.Update(website)
+				registry.WebRepository.Update(website, context.Background())
 				for _, link := range links {
 					//bot.SendMessage(link)
 					fmt.Println(link)
