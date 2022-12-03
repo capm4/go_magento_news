@@ -5,13 +5,16 @@ import (
 	"magento/bot/pkg/bot"
 	"magento/bot/pkg/config"
 	"magento/bot/pkg/logger"
+	"magento/bot/pkg/registry"
+	"magento/bot/pkg/router"
 	"magento/bot/pkg/worker"
 	"os"
 	"os/signal"
 
-	"github.com/sirupsen/logrus"
-	"github.com/slack-go/slack"
+	"github.com/labstack/echo"
 	"gopkg.in/robfig/cron.v2"
+
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -19,30 +22,63 @@ func main() {
 	if err != nil {
 		logrus.Fatal(err.Error())
 	}
-	logger.InitLogger(cfg)
-	slack := bot.CreateSender(cfg)
-	c := cron.New()
 
-	c.AddFunc("0 */1 * * * *", func() { logrus.Info("ping") })
-	c.AddFunc("30 7 * * *", func() { RunBot(cfg, slack) })
+	logger.InitLogger(cfg)
+	registry, err := registry.Init(cfg)
+	if err != nil {
+		logrus.Fatal(err.Error())
+	}
+	c := cron.New()
+	//c.AddFunc("0 */1 * * * *", func() { logrus.Info("ping") })
+	//c.AddFunc("30 7 * * *", func() { RunBot(registry) })
+	//c.Start()
+	//RunBot(registry)
+	//c.AddFunc("* * * * *", func() { RunBot(registry) })
 	c.Start()
+	RunRouter(registry)
 	sig := make(chan os.Signal)
 	signal.Notify(sig, os.Interrupt, os.Kill)
 	<-sig
 }
 
-func RunBot(cfg *config.Сonfig, slack *slack.Client) {
-	docs := worker.CreateDocuments(cfg)
-	for _, doc := range docs {
-		links := worker.GetLinks(doc)
-		if len(links) > 0 {
-			lastLink := links[0]
-			doc.LastUrl = lastLink
-			worker.UpdateDocument(cfg, doc)
-			for _, link := range links {
-				bot.SendMessage(slack, cfg.SlackChanelId, link)
-				fmt.Println(link)
+func RunBot(registry *registry.Registry) {
+	fmt.Println("ping")
+	bot, err := bot.CreateSlackBot(registry.CfgRepository)
+	//bot.SendMessage("ping")
+	fmt.Println("ping")
+	if err != nil {
+		logrus.Warn(err)
+	}
+	websites, err := registry.WebRepository.GetAll()
+	if err != nil {
+		logrus.Warn(err)
+	}
+
+	if bot != nil && websites != nil {
+		for _, website := range websites {
+			links := worker.GetLinks(*website)
+			if len(links) > 0 {
+				lastLink := links[0]
+				website.LastUrl = lastLink
+				registry.WebRepository.Update(website)
+				for _, link := range links {
+					//bot.SendMessage(link)
+					fmt.Println(link)
+				}
 			}
 		}
+	}
+}
+
+func RunRouter(registry *registry.Registry) {
+	e := echo.New()
+	controller, err := registry.NewAppController()
+	if err != nil {
+		logrus.Fatal(err.Error())
+	}
+	e = router.NewRouter(e, controller, &registry.Config)
+	fmt.Println("Server listen at http://localhost" + ":" + registry.Config.ServerAddressPort)
+	if err := e.Start(":" + registry.Config.ServerAddressPort); err != nil {
+		logrus.Fatalln(err)
 	}
 }
