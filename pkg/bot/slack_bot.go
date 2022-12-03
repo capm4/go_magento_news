@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"context"
 	"magento/bot/pkg/repository"
 
 	"github.com/slack-go/slack"
@@ -17,11 +18,11 @@ type SlackBot struct {
 }
 
 func CreateSlackBot(cfgRepository repository.ConfigRepositoryInterface) (Bot, error) {
-	token, err := cfgRepository.GetByPath(SlackToken)
+	token, err := cfgRepository.GetByPath(SlackToken, context.Background())
 	if err != nil {
 		return nil, err
 	}
-	chanelId, err := cfgRepository.GetByPath(SlackChanelId)
+	chanelId, err := cfgRepository.GetByPath(SlackChanelId, context.Background())
 	if err != nil {
 		return nil, err
 	}
