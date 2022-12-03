@@ -1,3 +1,5 @@
 .env
 .idea
+.postgres
 src.json
+config/*

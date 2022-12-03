@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+
 	"github.com/caarlos0/env/v6"
 	"github.com/joho/godotenv"
 )
@@ -12,13 +13,18 @@ const DebugMode bool = true
 var config *Сonfig
 
 type Сonfig struct {
-	SlackToken    string `env:"SlackToken"`
-	SlackChanelId string `env:"SlackChanelId"`
-	FilePath      string `env:"FilePath" envDefault:"src.json"`
-	LogLevel      string `env:"LogLevel" envDefault:"info"`
-	LogFilePath   string `env:"LogFilePath" envDefault:""`
-	LogFormat     string `env:"LogFormat" envDefault:"text"`
-	Debug         bool   `env:"Debug" envDefault:"false"`
+	FilePath          string `env:"FilePath" envDefault:"src.json"`
+	LogLevel          string `env:"LogLevel" envDefault:"info"`
+	LogFilePath       string `env:"LogFilePath" envDefault:""`
+	LogFormat         string `env:"LogFormat" envDefault:"text"`
+	Debug             bool   `env:"Debug" envDefault:"false"`
+	DBPort            string `env:"DB_PORT"`
+	DBPass            string `env:"DB_PASS"`
+	DBUser            string `env:"DB_USER"`
+	DBname            string `env:"DB_NAME"`
+	DBhost            string `env:"DB_HOST"`
+	ServerAddressPort string `env:"ServerAddressPort" envDefault:"8080"`
+	JwtSecret         string `env:"JwtSecret" envDefault:""`
 }
 
 func LoadConfigVariables(fileName string) (*Сonfig, error) {

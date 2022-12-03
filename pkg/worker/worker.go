@@ -2,12 +2,14 @@ package worker
 
 import (
 	"fmt"
+	"magento/bot/pkg/model"
+	"net/http"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/sirupsen/logrus"
-	"net/http"
 )
 
-func GetLinks(doc Document) []string {
+func GetLinks(doc model.Website) []string {
 	body, err := getLinks(doc)
 	if err != nil {
 		return nil
@@ -15,7 +17,7 @@ func GetLinks(doc Document) []string {
 	return body
 }
 
-func getLinks(doc Document) ([]string, error) {
+func getLinks(doc model.Website) ([]string, error) {
 	var links []string
 	index := 0
 	response, err := http.Get(doc.Url)
