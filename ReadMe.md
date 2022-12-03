@@ -46,3 +46,8 @@ Project Dependency
 2) Logger https://github.com/sirupsen/logrus
 3) Postgres database/sql
 4) Slack bot github.com/slack-go/slack
+
+Docker
+======================================
+1) postgres
+2) golang:latest
