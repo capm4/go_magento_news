@@ -85,6 +85,15 @@ func UpdateDocument(cfg *config.Сonfig, doc Website) {
 	}
 }
 
+//update and validate website from echo context
+func (w *Website) Update(c echo.Context) error {
+	err := w.bindAndValidate(c)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (w *Website) ToResponseWebsite() *ResponseWebsite {
 	return &ResponseWebsite{Id: w.Id, Url: w.Url, Selector: w.Selector, Attribute: w.Attribute, LastUrl: w.LastUrl}
 }

@@ -4,10 +4,10 @@ import (
 	"github.com/labstack/echo"
 )
 
-type WebsiteControllerInterface interface {
-	GetWebsites(c echo.Context) error
-	GetWebsitesById(c echo.Context) error
+type SlackControllerInterface interface {
 	Create(c echo.Context) error
 	DeleteById(c echo.Context) error
 	Update(c echo.Context) error
+	GetAll(c echo.Context) error
+	GetById(c echo.Context) error
 }

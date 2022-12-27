@@ -6,11 +6,12 @@ import (
 	"magento/bot/pkg/model"
 )
 
-type PostgressWebsitesInterface interface {
+type PostgressSlackInterface interface {
 	GetAll(ctx context.Context) (*sql.Rows, error)
 	GetById(id int64, ctx context.Context) (*sql.Row, error)
-	Update(website model.Website, ctx context.Context) (int64, error)
+	Update(website model.SlackBot, ctx context.Context) (int64, error)
 	DeleteById(id int64, ctx context.Context) (int64, error)
-	Insert(website model.Website, ctx context.Context) (int64, error)
+	Insert(slack model.SlackBot, ctx context.Context) (int64, error)
 	IsExistById(id int64, ctx context.Context) (bool, error)
+	InsertWebsiteToSlack(slackId, websiteId int64, ctx context.Context) (int64, error)
 }

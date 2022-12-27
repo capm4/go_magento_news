@@ -55,7 +55,7 @@ func (d *WebsiteController) Create(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
 	}
 	website.Id = id
-	return c.JSON(http.StatusOK, website.ToResponseWebsite())
+	return c.JSON(http.StatusCreated, website.ToResponseWebsite())
 
 }
 
@@ -65,7 +65,7 @@ func (d *WebsiteController) DeleteById(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse("id is required param"))
 	}
 	id, err := strconv.ParseInt(idParama, 10, 64)
-	if idParama == "" {
+	if err != nil {
 		logrus.Warn(err.Error())
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse("error while deleting website"))
 	}
@@ -77,4 +77,30 @@ func (d *WebsiteController) DeleteById(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse("something goes wrong while delete website."))
 	}
 	return c.JSON(http.StatusOK, CreateResponseMsg(fmt.Sprintf("website with id %d was deleted", id)))
+}
+
+func (d *WebsiteController) Update(c echo.Context) error {
+	w := &model.Website{}
+	err := w.Update(c)
+	if err != nil {
+		logrus.Warn(err.Error())
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse("error while updating website"))
+	}
+	exist, err := d.websiteRepository.IsExistById(w.Id, c.Request().Context())
+	if err != nil {
+		logrus.Warn(err.Error())
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse("something goes wrong, while checking if website exist"))
+	}
+	if !exist {
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse(fmt.Sprintf("website with %d doesn't exist", w.Id)))
+	}
+	ok, err := d.websiteRepository.Update(w, c.Request().Context())
+	if err != nil {
+		logrus.Warn(err.Error())
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse("error while updating website"))
+	}
+	if !ok {
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse("something goes wrong, while updating website"))
+	}
+	return c.JSON(http.StatusOK, CreateResponseMsg("website was updated"))
 }

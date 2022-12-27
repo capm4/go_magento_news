@@ -11,4 +11,5 @@ type WebsiteRepositoryInterface interface {
 	Update(doc *model.Website, ctx context.Context) (bool, error)
 	Delete(id int64, ctx context.Context) (bool, error)
 	Create(doc *model.Website, ctx context.Context) (int64, error)
+	IsExistById(id int64, ctx context.Context) (bool, error)
 }

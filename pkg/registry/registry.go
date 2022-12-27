@@ -8,11 +8,12 @@ import (
 )
 
 type Registry struct {
-	Config         config.Сonfig
-	dbConn         database.PostgresDB
-	WebRepository  repository.WebsiteRepositoryInterface
-	CfgRepository  repository.ConfigRepositoryInterface
-	UserRepository repository.UserRepositoryInterface
+	Config          config.Сonfig
+	dbConn          database.PostgresDB
+	WebRepository   repository.WebsiteRepositoryInterface
+	CfgRepository   repository.ConfigRepositoryInterface
+	UserRepository  repository.UserRepositoryInterface
+	SlackRepository repository.SlackRepositoryInterface
 }
 
 func Init(cfg *config.Сonfig) (*Registry, error) {
@@ -37,6 +38,13 @@ func Init(cfg *config.Сonfig) (*Registry, error) {
 		return nil, err
 	}
 	registry.UserRepository = usrRep
+
+	slackrep, err := CreateSlackRepository(registry.dbConn)
+	if err != nil {
+		return nil, err
+	}
+	registry.SlackRepository = slackrep
+
 	registry.Config = *cfg
 
 	return &registry, nil
@@ -73,6 +81,15 @@ func CreateUserRepository(dbCon database.PostgresDB) (repository.UserRepositoryI
 	return repository.NewUserRepository(db), nil
 }
 
+//create slack repository
+func CreateSlackRepository(dbCon database.PostgresDB) (repository.SlackRepositoryInterface, error) {
+	db, err := database.NewPostgresSlackBotDB(&dbCon)
+	if err != nil {
+		return nil, err
+	}
+	return repository.NewSlackRepository(db), nil
+}
+
 func (r Registry) NewAppController() (controller.AppController, error) {
 	webController, err := controller.NewWebsiteController(r.WebRepository)
 	if err != nil {
@@ -82,5 +99,9 @@ func (r Registry) NewAppController() (controller.AppController, error) {
 	if err != nil {
 		return controller.AppController{}, err
 	}
-	return controller.AppController{Website: webController, User: userController, Config: &r.Config}, nil
+	slackController, err := controller.NewSlackController(r.SlackRepository)
+	if err != nil {
+		return controller.AppController{}, err
+	}
+	return controller.AppController{Website: webController, User: userController, Slack: slackController, Config: &r.Config}, nil
 }

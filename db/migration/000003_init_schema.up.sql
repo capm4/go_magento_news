@@ -4,7 +4,7 @@ CREATE TABLE slack_bot (
 		token       		varchar(80),
 		channel_id 			varchar(80),
 		cron_every 			bigint,
-		last_cron_run       timestamp
+		last_cron_run       timestamp default NOW()
 );
 
 CREATE INDEX ON "slack_bot" ("id");

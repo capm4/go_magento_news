@@ -9,6 +9,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const domainNameWebsite = "website"
+
 type WebsiteRepository struct {
 	client database.PostgressWebsitesInterface
 }
@@ -52,9 +54,6 @@ func (r *WebsiteRepository) GetById(id int64, ctx context.Context) (*model.Websi
 		return nil, row.Err()
 	}
 	row.Scan(&doc.Id, &doc.Url, &doc.Selector, &doc.Attribute, &doc.LastUrl)
-	if doc.Id == 0 {
-		return &doc, fmt.Errorf("there no website with id %d", id)
-	}
 
 	return &doc, nil
 }
@@ -67,7 +66,7 @@ func (r *WebsiteRepository) Update(website *model.Website, ctx context.Context) 
 	rowsAffected, err := r.client.Update(*website, c)
 	if err != nil && rowsAffected < 1 {
 		logrus.Warning(err.Error())
-		return false, fmt.Errorf("website with id %d doesn't update", website.Id)
+		return false, fmt.Errorf("%s with id %d doesn't update", domainNameWebsite, website.Id)
 	}
 	return true, nil
 }
@@ -80,10 +79,10 @@ func (r *WebsiteRepository) Delete(id int64, ctx context.Context) (bool, error) 
 	rowsAffected, err := r.client.DeleteById(id, c)
 	if err != nil {
 		logrus.Warning(err.Error())
-		return false, fmt.Errorf("website with id %d doesn't deleted", id)
+		return false, fmt.Errorf("%s with id %d doesn't deleted", domainNameWebsite, id)
 	}
 	if rowsAffected < 1 {
-		return false, fmt.Errorf("website with id %d doesn't deleted", id)
+		return false, fmt.Errorf("%s with id %d doesn't deleted", domainNameWebsite, id)
 	}
 	return true, nil
 }
@@ -96,7 +95,19 @@ func (r *WebsiteRepository) Create(website *model.Website, ctx context.Context) 
 	id, err := r.client.Insert(*website, c)
 	if err != nil && id < 1 {
 		logrus.Warning(err.Error())
-		return 0, fmt.Errorf("website doesn't created")
+		return 0, fmt.Errorf("%s doesn't created", domainNameWebsite)
 	}
 	return id, nil
+}
+
+//check by if if website exist
+func (r *WebsiteRepository) IsExistById(id int64, ctx context.Context) (bool, error) {
+	c, cancel := context.WithTimeout(ctx, TimeOut)
+	defer cancel()
+	exist, err := r.client.IsExistById(id, c)
+	if err != nil {
+		logrus.Warning(err.Error())
+		return false, fmt.Errorf("something goes wrong while checking if %s exist", domainNameWebsite)
+	}
+	return exist, nil
 }

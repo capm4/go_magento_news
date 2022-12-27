@@ -9,6 +9,9 @@ type AppController struct {
 	User interface {
 		UserControllerInterface
 	}
+	Slack interface {
+		SlackControllerInterface
+	}
 	Config *config.Сonfig
 }
 

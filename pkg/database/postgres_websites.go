@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"magento/bot/pkg/model"
 
 	_ "github.com/lib/pq"
@@ -33,13 +32,9 @@ func NewPostgresWebsiteDB(db *PostgresDB) (PostgressWebsitesInterface, error) {
 	return &PostgresWebsites{db: db}, nil
 }
 
-// get all documents
+// get all websites
 func (p *PostgresWebsites) GetAll(ctx context.Context) (*sql.Rows, error) {
-	query, _, err := createSelectStm(tableNameWebsite).ToSQL()
-	if err != nil {
-		return nil, err
-	}
-	rows, err := p.db.client.QueryContext(ctx, query)
+	rows, err := getAll(*p.db, tableNameWebsite, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -64,29 +59,11 @@ func (p *PostgresWebsites) GetById(id int64, ctx context.Context) (*sql.Row, err
 
 // update website
 func (p *PostgresWebsites) Update(website model.Website, ctx context.Context) (int64, error) {
-	websites := append([]model.Website{}, website)
-	query, _, err := createUpdateStm(tableNameWebsite, websites).ToSQL()
-	if err != nil {
-		return 0, err
-	}
-	tx, err := p.db.client.BeginTx(ctx, nil)
-	if err != nil {
-		return 0, err
-	}
-	defer tx.Rollback()
-	result, err := tx.ExecContext(ctx, query)
-	if err != nil {
-		return 0, err
-	}
-	if err = tx.Commit(); err != nil {
-		return 0, err
-	}
-	rowsAffected, err := result.RowsAffected()
+	rowsAffected, err := update(*p.db, website, website.Id, tableNameWebsite, ctx)
 	if err != nil {
 		return 0, err
 	}
 	return rowsAffected, err
-
 }
 
 // update document with value
@@ -113,24 +90,7 @@ func (p *PostgresWebsites) UpdateById(id int64, url, selector, attribute, last_u
 
 // delete website by id
 func (p *PostgresWebsites) DeleteById(id int64, ctx context.Context) (int64, error) {
-	query, _, err := createRemoveStm(tableNameWebsite, "id", id).ToSQL()
-	if err != nil {
-		return 0, err
-	}
-	fmt.Println(query)
-	tx, err := p.db.client.BeginTx(ctx, nil)
-	if err != nil {
-		return 0, err
-	}
-	defer tx.Rollback()
-	result, err := tx.ExecContext(ctx, query)
-	if err != nil {
-		return 0, err
-	}
-	if err = tx.Commit(); err != nil {
-		return 0, err
-	}
-	rowsAffected, err := result.RowsAffected()
+	rowsAffected, err := deleteById(*p.db, id, tableNameWebsite, ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -159,4 +119,12 @@ func (p *PostgresWebsites) Insert(website model.Website, ctx context.Context) (i
 		return 0, err
 	}
 	return website.Id, nil
+}
+
+func (p *PostgresWebsites) IsExistById(id int64, ctx context.Context) (bool, error) {
+	exists, err := isExistById(*p.db, id, ctx, tableNameWebsite)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
 }

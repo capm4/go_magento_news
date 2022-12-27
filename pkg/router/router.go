@@ -22,6 +22,7 @@ func NewRouter(e *echo.Echo, c controller.AppController, cfg *config.Сonfig) *e
 	e.Use(middleware.Recover())
 	userRouter(e, c, cfg)
 	websiteRouter(e, c, cfg)
+	slackRouter(e, c, cfg)
 	return e
 }
 
@@ -34,6 +35,7 @@ func websiteRouter(e *echo.Echo, c controller.AppController, cfg *config.Сonfig
 	v1JwtWithRole.GET("/website/:id", func(context echo.Context) error { return c.Website.GetWebsitesById(context) })
 	v1JwtWithRole.PUT("/website", func(context echo.Context) error { return c.Website.Create(context) })
 	v1JwtWithRole.DELETE("/website/:id", func(context echo.Context) error { return c.Website.DeleteById(context) })
+	v1JwtWithRole.POST("/website", func(context echo.Context) error { return c.Website.Update(context) })
 }
 
 func userRouter(e *echo.Echo, c controller.AppController, cfg *config.Сonfig) {
@@ -42,9 +44,22 @@ func userRouter(e *echo.Echo, c controller.AppController, cfg *config.Сonfig) {
 	addJWT(v1JwtWithRole, cfg)
 	addJwtRoleCheck(v1JwtWithRole)
 	v1.POST("/user/login", func(context echo.Context) error { return c.User.AuthUser(context, c.Config.JwtSecret) })
-	//v1JwtWithRole.PUT("/user/", func(context echo.Context) error { return c.User.CreatedUser(context) })
-	//v1JwtWithRole.POST("/user/", func(context echo.Context) error { return c.User.UpdateUser(context) })
-	//v1JwtWithRole.DELETE("/user/", func(context echo.Context) error { return c.User.DeleteUser(context) })
+	v1JwtWithRole.PUT("/user", func(context echo.Context) error { return c.User.Create(context) })
+	v1JwtWithRole.POST("/user", func(context echo.Context) error { return c.User.Update(context) })
+	v1JwtWithRole.DELETE("/user/:id", func(context echo.Context) error { return c.User.DeleteById(context) })
+	v1JwtWithRole.GET("/users", func(context echo.Context) error { return c.User.GetUsers(context) })
+	v1JwtWithRole.GET("/user/:id", func(context echo.Context) error { return c.User.GetUserByLogin(context) })
+}
+
+func slackRouter(e *echo.Echo, c controller.AppController, cfg *config.Сonfig) {
+	v1JwtWithRole := e.Group(version1)
+	addJWT(v1JwtWithRole, cfg)
+	addJwtRoleCheck(v1JwtWithRole)
+	v1JwtWithRole.GET("/slackbots", func(context echo.Context) error { return c.Slack.GetAll(context) })
+	v1JwtWithRole.GET("/slackbot/:id", func(context echo.Context) error { return c.Slack.GetById(context) })
+	v1JwtWithRole.PUT("/slackbot", func(context echo.Context) error { return c.Slack.Create(context) })
+	v1JwtWithRole.POST("/slackbot", func(context echo.Context) error { return c.Slack.Update(context) })
+	v1JwtWithRole.DELETE("/slackbot/:id", func(context echo.Context) error { return c.Slack.DeleteById(context) })
 }
 
 func addJWT(g *echo.Group, config *config.Сonfig) {

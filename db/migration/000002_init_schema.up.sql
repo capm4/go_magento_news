@@ -5,7 +5,7 @@ CREATE TABLE users (
 		password        varchar(80),
 		role 			varchar(80),
 		is_active       boolean,
-		created_at		date NOT NULL,	
+		created_at		date NOT NULL default NOW(),	
 		updated_at      date NOT NULL default current_date,
 		UNIQUE(login)
 );

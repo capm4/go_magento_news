@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -14,7 +15,11 @@ type PostgresDB struct {
 }
 
 type GenerigParamsModel interface {
-	model.Website | model.Config | model.SlackBot | model.User | PostgreWebsite
+	model.Website | model.Config | model.SlackBot | model.User | PostgreWebsite | DbUser | PostgreSlackBotWithTime | PostgreSlackBot | PostgresSlackWebiste
+}
+
+type GenerigModel interface {
+	model.Website | model.Config | model.SlackBot | model.User
 }
 
 type GenerigParams interface {
@@ -78,9 +83,8 @@ func addJoin(stm *goqu.SelectDataset, joinTable, fKey, joinKey string) *goqu.Sel
 // m1["url"] = "test1.com"
 // m1["selector"] = ".a"
 // maps[1] = m
-// maps[2] = m1
-func createUpdateStm[G GenerigParamsModel](table string, updateParams []G) *goqu.UpdateDataset {
-	return goqu.Update(table).Set(updateParams)
+func createUpdateStm[G GenerigParamsModel](table string, updateParam G, column string, id int64) *goqu.UpdateDataset {
+	return goqu.Update(table).Set(updateParam).Where(goqu.C(column).Eq(id))
 }
 
 func createInsertStm[G GenerigParamsModel](table string, insertParams G) *goqu.InsertDataset {
@@ -126,4 +130,81 @@ func createDeleteQuery(tableName, query string) string {
 func createInsertQuery(tableName, query string) string {
 
 	return fmt.Sprintf("INSERT INTO %s %s", tableName, query)
+}
+
+// delete by id
+func deleteById(db PostgresDB, id int64, tableName string, ctx context.Context) (int64, error) {
+	query, _, err := createRemoveStm(tableName, "id", id).ToSQL()
+	if err != nil {
+		return 0, err
+	}
+	tx, err := db.client.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+	result, err := tx.ExecContext(ctx, query)
+	if err != nil {
+		return 0, err
+	}
+	if err = tx.Commit(); err != nil {
+		return 0, err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	return rowsAffected, err
+}
+
+func isExistById(db PostgresDB, id int64, ctx context.Context, tableName string) (bool, error) {
+	whereStm := []PostgresWhereParam{}
+	whereStm = append(whereStm, PostgresWhereParam{Column: "id", Type: "eq", Value: id})
+	query, _, err := createSelectWhereStm(tableName, whereStm).ToSQL()
+	if err != nil {
+		return false, err
+	}
+	var exists bool
+	q := fmt.Sprintf("SELECT exists (%s)", query)
+	db.client.QueryRowContext(ctx, q).Scan(&exists)
+	if err != nil && err != sql.ErrNoRows {
+		return false, err
+	}
+	return exists, nil
+}
+
+func getAll(db PostgresDB, tableName string, ctx context.Context) (*sql.Rows, error) {
+	query, _, err := createSelectStm(tableName).ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	rows, err := db.client.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+func update[G GenerigModel](db PostgresDB, model G, id int64, tableName string, ctx context.Context) (int64, error) {
+	query, _, err := createUpdateStm(tableName, model, "id", id).ToSQL()
+	if err != nil {
+		return 0, err
+	}
+	tx, err := db.client.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+	result, err := tx.ExecContext(ctx, query)
+	if err != nil {
+		return 0, err
+	}
+	if err = tx.Commit(); err != nil {
+		return 0, err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	return rowsAffected, err
 }
