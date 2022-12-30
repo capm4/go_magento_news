@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"fmt"
 	"magento/bot/pkg/model"
 	"magento/bot/pkg/repository"
@@ -28,7 +29,7 @@ func (s *SlackController) GetAll(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.ResponsSlackBot{SlackBot: slackBots})
 }
 
-func (d *SlackController) GetById(c echo.Context) error {
+func (s *SlackController) GetById(c echo.Context) error {
 	idParama := c.Param("id")
 	if idParama == "" {
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse("id is required param"))
@@ -38,7 +39,7 @@ func (d *SlackController) GetById(c echo.Context) error {
 		logrus.Warn(err.Error())
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse("error while getting website"))
 	}
-	slack, err := d.slackRepository.GetById(id, c.Request().Context())
+	slack, err := s.slackRepository.GetById(id, c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
 	}
@@ -48,12 +49,12 @@ func (d *SlackController) GetById(c echo.Context) error {
 	return c.JSON(http.StatusOK, slack)
 }
 
-func (d *SlackController) Create(c echo.Context) error {
+func (s *SlackController) Create(c echo.Context) error {
 	slack, err := model.CreateSlackFromContext(c)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
 	}
-	id, err := d.slackRepository.Create(slack, c.Request().Context())
+	id, err := s.slackRepository.Create(slack, c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
 	}
@@ -62,22 +63,22 @@ func (d *SlackController) Create(c echo.Context) error {
 
 }
 
-func (d *SlackController) Update(c echo.Context) error {
-	s := &model.SlackBot{}
+func (s *SlackController) Update(c echo.Context) error {
+	slack := &model.SlackBot{}
 	err := s.Update(c)
 	if err != nil {
 		logrus.Warn(err.Error())
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse("error while updating slack"))
 	}
-	exist, err := d.slackRepository.IsExistById(s.Id, c.Request().Context())
+	exist, err := s.slackRepository.IsExistById(slack.Id, c.Request().Context())
 	if err != nil {
 		logrus.Warn(err.Error())
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse("something goes wrong, while checking if slackbot exist"))
 	}
 	if !exist {
-		return c.JSON(http.StatusBadRequest, CreateErrorResponse(fmt.Sprintf("slackbot with %d doesn't exist", s.Id)))
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse(fmt.Sprintf("slackbot with %d doesn't exist", slack.Id)))
 	}
-	ok, err := d.slackRepository.Update(s, c.Request().Context())
+	ok, err := s.slackRepository.Update(slack, c.Request().Context())
 	if err != nil {
 		logrus.Warn(err.Error())
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse("error while updating slackbot"))
@@ -88,7 +89,7 @@ func (d *SlackController) Update(c echo.Context) error {
 	return c.JSON(http.StatusOK, CreateResponseMsg("slackbot was updated"))
 }
 
-func (d *SlackController) DeleteById(c echo.Context) error {
+func (s *SlackController) DeleteById(c echo.Context) error {
 	idParama := c.Param("id")
 	if idParama == "" {
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse("id is required param"))
@@ -98,7 +99,7 @@ func (d *SlackController) DeleteById(c echo.Context) error {
 		logrus.Warn(err.Error())
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse("error while deleting slackbot"))
 	}
-	ok, err := d.slackRepository.Delete(id, c.Request().Context())
+	ok, err := s.slackRepository.Delete(id, c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
 	}
@@ -106,4 +107,92 @@ func (d *SlackController) DeleteById(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse("something goes wrong while delete slackbot."))
 	}
 	return c.JSON(http.StatusOK, CreateResponseMsg(fmt.Sprintf("slackbot with id %d was deleted", id)))
+}
+
+func (s *SlackController) AddWebsiteToSlack(c echo.Context) error {
+	data := make(map[string]string)
+	err := json.NewDecoder(c.Request().Body).Decode(&data)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
+	}
+	keys := []string{"slackId", "websiteId"}
+	parsetData, err := validateJsonAndParse(data, keys)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
+	}
+	exist, err := s.slackRepository.IsExistWebsiteInSlack(parsetData["slackId"], parsetData["websiteId"], c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
+	}
+	if exist {
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse(fmt.Sprintf("webiste with %d alredy in slack %d", parsetData["websiteId"], parsetData["slackId"])))
+	}
+	id, err := s.slackRepository.InsertWebsiteToSlack(parsetData["slackId"], parsetData["websiteId"], c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
+	}
+	return c.JSON(http.StatusCreated, CreateResponseMsg(fmt.Sprintf("website %d assign to slack %d, return id %d", parsetData["websiteId"], parsetData["slackId"], id)))
+}
+
+func (s *SlackController) RemoveWebsitefromSlack(c echo.Context) error {
+	data := make(map[string]string)
+	err := json.NewDecoder(c.Request().Body).Decode(&data)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
+	}
+	keys := []string{"slackId", "websiteId"}
+	parsetData, err := validateJsonAndParse(data, keys)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
+	}
+	exist, err := s.slackRepository.IsExistWebsiteInSlack(parsetData["slackId"], parsetData["websiteId"], c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
+	}
+	if !exist {
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse(fmt.Sprintf("webiste with %d not in slack %d", parsetData["websiteId"], parsetData["slackId"])))
+	}
+	ok, err := s.slackRepository.RemoveWebsiteFromSlack(parsetData["slackId"], parsetData["websiteId"], c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
+	}
+	if !ok {
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse("something goes wrong while delete website from slackbot."))
+	}
+	return c.JSON(http.StatusCreated, CreateResponseMsg(fmt.Sprintf("website %d removed from slack %d", parsetData["websiteId"], parsetData["slackId"])))
+}
+
+//validate json map and parse string to int
+func validateJsonAndParse(data map[string]string, keys []string) (map[string]int64, error) {
+	parsetData := make(map[string]int64)
+	for _, key := range keys {
+		id, ok := data[key]
+		if !ok {
+			return nil, fmt.Errorf("key %s doesn't exist", key)
+		}
+		value, err := strconv.ParseInt(id, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		parsetData[key] = value
+	}
+	return parsetData, nil
+}
+
+func (s *SlackController) GetAllWebsiteBySlackId(c echo.Context) error {
+	idParama := c.Param("id")
+	if idParama == "" {
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse("id is required param"))
+	}
+	id, err := strconv.ParseInt(idParama, 10, 64)
+	if err != nil {
+		logrus.Warn(err.Error())
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse("error while getting website by slackbot id"))
+	}
+	websites, err := s.slackRepository.GetAllWebsiteBySlackId(id, c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
+	}
+
+	return c.JSON(http.StatusOK, model.ResponseWebsites{Websites: websites})
 }

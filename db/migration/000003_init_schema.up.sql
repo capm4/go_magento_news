@@ -10,11 +10,11 @@ CREATE TABLE slack_bot (
 CREATE INDEX ON "slack_bot" ("id");
 
 
-CREATE TABLE slact_bot_websites (
+CREATE TABLE slack_bot_websites (
 	id          bigserial     PRIMARY KEY,
 	slack_id	bigint,
 	website_id  bigint
 );
 
-CREATE INDEX ON "slact_bot_websites" ("id");
-CREATE INDEX ON "slact_bot_websites" ("slack_id");
+CREATE INDEX ON "slack_bot_websites" ("id");
+CREATE INDEX ON "slack_bot_websites" ("slack_id");

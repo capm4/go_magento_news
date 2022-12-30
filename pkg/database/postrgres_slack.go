@@ -3,15 +3,17 @@ package database
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"magento/bot/pkg/model"
 	"time"
 
+	"github.com/doug-martin/goqu/v9"
 	_ "github.com/lib/pq"
 )
 
 const (
 	tableNameSlack        = "slack_bot"
-	tableNameSlackWebsite = "slact_bot_websites"
+	tableNameSlackWebsite = "slack_bot_websites"
 )
 
 type PostgresSlackBot struct {
@@ -161,4 +163,48 @@ func (p *PostgresSlackBot) InsertWebsiteToSlack(slackId, websiteId int64, ctx co
 		return 0, err
 	}
 	return returnData.Id, nil
+}
+
+func (p *PostgresSlackBot) IsExistWebsiteInSlack(slackId, websiteId int64, ctx context.Context) (bool, error) {
+	whereStm := []PostgresWhereParam{}
+	whereStm = append(whereStm, PostgresWhereParam{Column: "slack_id", Type: "eq", Value: slackId})
+	whereStm = append(whereStm, PostgresWhereParam{Column: "website_id", Type: "eq", Value: websiteId})
+	query, _, err := createSelectWhereStm(tableNameSlackWebsite, whereStm).ToSQL()
+	if err != nil {
+		return false, err
+	}
+	var exists bool
+	q := fmt.Sprintf("SELECT exists (%s)", query)
+	p.db.client.QueryRowContext(ctx, q).Scan(&exists)
+	if err != nil && err != sql.ErrNoRows {
+		return false, err
+	}
+	return exists, nil
+}
+
+func (p *PostgresSlackBot) DeleteWebsiteFromSlackById(slackId, websiteId int64, ctx context.Context) (int64, error) {
+	whereStm := []PostgresWhereParam{}
+	whereStm = append(whereStm, PostgresWhereParam{Column: "slack_id", Type: "eq", Value: slackId})
+	whereStm = append(whereStm, PostgresWhereParam{Column: "website_id", Type: "eq", Value: websiteId})
+	rowsAffected, err := deleteByMultimpleColumn(*p.db, whereStm, tableNameSlackWebsite, ctx)
+	if err != nil {
+		return 0, err
+	}
+	return rowsAffected, err
+}
+
+func (p *PostgresSlackBot) GetAllWebsiteBySlackId(id int64, ctx context.Context) (*sql.Rows, error) {
+	sQ := goqu.From(tableNameWebsite).Select("websites.id", "url", "selector", "attribute", "last_url")
+	sQ = sQ.LeftJoin(goqu.I(tableNameSlackWebsite), goqu.On(goqu.Ex{"slack_bot_websites.website_id": goqu.I("websites.id")}))
+	sQ = sQ.Where(goqu.C("slack_id").Eq(id))
+	query, _, err := sQ.ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(query)
+	rows, err := p.db.client.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
 }

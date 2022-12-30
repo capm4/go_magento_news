@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"magento/bot/pkg/database"
 	"magento/bot/pkg/model"
+	"reflect"
 
 	"github.com/sirupsen/logrus"
 )
 
 const domainNameSlackBot = "slack"
+const domainNameSlackBotWebsite = "slack to website"
 
 type SlackRepository struct {
 	client database.PostgressSlackInterface
@@ -110,4 +112,70 @@ func (r *SlackRepository) Delete(id int64, ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("%s with id %d doesn't deleted", domainNameSlackBot, id)
 	}
 	return true, nil
+}
+
+//check by id if website exist in slack bot
+func (r *SlackRepository) IsExistWebsiteInSlack(slackId, websiteId int64, ctx context.Context) (bool, error) {
+	c, cancel := context.WithTimeout(ctx, TimeOut)
+	defer cancel()
+	exist, err := r.client.IsExistWebsiteInSlack(slackId, websiteId, c)
+	if err != nil {
+		logrus.Warning(err.Error())
+		return false, fmt.Errorf("something goes wrong while checking if webiste exist in slack")
+	}
+	return exist, nil
+}
+
+func (r *SlackRepository) InsertWebsiteToSlack(slackId, websiteId int64, ctx context.Context) (int64, error) {
+	c, cancel := context.WithTimeout(ctx, TimeOut)
+	defer cancel()
+	id, err := r.client.InsertWebsiteToSlack(slackId, websiteId, c)
+	if err != nil && id < 1 {
+		logrus.Warning(err.Error())
+		return 0, fmt.Errorf("%s doesn't created", domainNameSlackBotWebsite)
+	}
+	return id, nil
+}
+
+func (r *SlackRepository) RemoveWebsiteFromSlack(slackId, websiteId int64, ctx context.Context) (bool, error) {
+	c, cancel := context.WithTimeout(ctx, TimeOut)
+	defer cancel()
+	rowsAffected, err := r.client.DeleteWebsiteFromSlackById(slackId, websiteId, c)
+	if err != nil {
+		logrus.Warning(err.Error())
+		return false, fmt.Errorf("%s website with id %d doesn't remove from slack", domainNameSlackBotWebsite, websiteId)
+	}
+	if rowsAffected < 1 {
+		return false, fmt.Errorf("%s website with id %d doesn't remove from slack", domainNameSlackBotWebsite, websiteId)
+	}
+	return true, nil
+}
+
+func (r *SlackRepository) GetAllWebsiteBySlackId(id int64, ctx context.Context) ([]*model.Website, error) {
+	c, cancel := context.WithTimeout(ctx, TimeOut)
+	defer cancel()
+	websites := []*model.Website{}
+	rows, err := r.client.GetAllWebsiteBySlackId(id, c)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		website := model.Website{}
+		s := reflect.ValueOf(&website).Elem()
+		numCols := s.NumField()
+		columns := make([]interface{}, numCols)
+		for i := 0; i < numCols; i++ {
+			field := s.Field(i)
+			columns[i] = field.Addr().Interface()
+		}
+
+		err = rows.Scan(columns...)
+		if err != nil {
+			logrus.Warning(err.Error())
+		} else {
+			websites = append(websites, &website)
+		}
+	}
+
+	return websites, nil
 }

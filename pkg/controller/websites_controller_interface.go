@@ -10,4 +10,5 @@ type WebsiteControllerInterface interface {
 	Create(c echo.Context) error
 	DeleteById(c echo.Context) error
 	Update(c echo.Context) error
+	CheckWebsite(c echo.Context) error
 }

@@ -99,6 +99,17 @@ func createRemoveStm[ValueParam GenerigParams](table, column string, value Value
 	return ds.Where(goqu.C(column).Eq(value)).Delete()
 }
 
+//create remove query with multiple columns
+//where table is table name where to remove
+//map is colums and value is where statment like remove where colum eq value
+func createRemoveStmMultipleCollumns(table string, params []PostgresWhereParam) *goqu.DeleteDataset {
+	stmExp := goqu.Ex{}
+	for _, param := range params {
+		addExToStm(stmExp, param)
+	}
+	return goqu.From(table).Where(stmExp).Delete()
+}
+
 func addExToStm(stm goqu.Ex, param PostgresWhereParam) {
 	switch pType := param.Type; pType {
 	case "eq":
@@ -135,6 +146,31 @@ func createInsertQuery(tableName, query string) string {
 // delete by id
 func deleteById(db PostgresDB, id int64, tableName string, ctx context.Context) (int64, error) {
 	query, _, err := createRemoveStm(tableName, "id", id).ToSQL()
+	if err != nil {
+		return 0, err
+	}
+	tx, err := db.client.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+	result, err := tx.ExecContext(ctx, query)
+	if err != nil {
+		return 0, err
+	}
+	if err = tx.Commit(); err != nil {
+		return 0, err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	return rowsAffected, err
+}
+
+// delete by multiple column
+func deleteByMultimpleColumn(db PostgresDB, params []PostgresWhereParam, tableName string, ctx context.Context) (int64, error) {
+	query, _, err := createRemoveStmMultipleCollumns(tableName, params).ToSQL()
 	if err != nil {
 		return 0, err
 	}

@@ -10,4 +10,7 @@ type SlackControllerInterface interface {
 	Update(c echo.Context) error
 	GetAll(c echo.Context) error
 	GetById(c echo.Context) error
+	AddWebsiteToSlack(c echo.Context) error
+	RemoveWebsitefromSlack(c echo.Context) error
+	GetAllWebsiteBySlackId(c echo.Context) error
 }

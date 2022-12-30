@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"magento/bot/pkg/model"
 	"magento/bot/pkg/repository"
+	"magento/bot/pkg/worker"
 	"net/http"
 	"strconv"
 
@@ -103,4 +104,14 @@ func (d *WebsiteController) Update(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, CreateErrorResponse("something goes wrong, while updating website"))
 	}
 	return c.JSON(http.StatusOK, CreateResponseMsg("website was updated"))
+}
+
+func (d *WebsiteController) CheckWebsite(c echo.Context) error {
+	website, err := model.CreateWebsiteFromContext(c)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, CreateErrorResponse(err.Error()))
+	}
+	body := worker.GetLinks(*website)
+
+	return c.JSON(http.StatusOK, body)
 }

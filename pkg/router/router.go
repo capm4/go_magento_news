@@ -27,7 +27,6 @@ func NewRouter(e *echo.Echo, c controller.AppController, cfg *config.Сonfig) *e
 }
 
 func websiteRouter(e *echo.Echo, c controller.AppController, cfg *config.Сonfig) {
-	//v1 := e.Group(version1)
 	v1JwtWithRole := e.Group(version1)
 	addJWT(v1JwtWithRole, cfg)
 	addJwtRoleCheck(v1JwtWithRole)
@@ -36,6 +35,7 @@ func websiteRouter(e *echo.Echo, c controller.AppController, cfg *config.Сonfig
 	v1JwtWithRole.PUT("/website", func(context echo.Context) error { return c.Website.Create(context) })
 	v1JwtWithRole.DELETE("/website/:id", func(context echo.Context) error { return c.Website.DeleteById(context) })
 	v1JwtWithRole.POST("/website", func(context echo.Context) error { return c.Website.Update(context) })
+	v1JwtWithRole.POST("/check_website", func(context echo.Context) error { return c.Website.CheckWebsite(context) })
 }
 
 func userRouter(e *echo.Echo, c controller.AppController, cfg *config.Сonfig) {
@@ -60,6 +60,9 @@ func slackRouter(e *echo.Echo, c controller.AppController, cfg *config.Сonfig) 
 	v1JwtWithRole.PUT("/slackbot", func(context echo.Context) error { return c.Slack.Create(context) })
 	v1JwtWithRole.POST("/slackbot", func(context echo.Context) error { return c.Slack.Update(context) })
 	v1JwtWithRole.DELETE("/slackbot/:id", func(context echo.Context) error { return c.Slack.DeleteById(context) })
+	v1JwtWithRole.POST("/slackbot/website", func(context echo.Context) error { return c.Slack.AddWebsiteToSlack(context) })
+	v1JwtWithRole.DELETE("/slackbot/website", func(context echo.Context) error { return c.Slack.RemoveWebsitefromSlack(context) })
+	v1JwtWithRole.GET("/slackbot/website/:id", func(context echo.Context) error { return c.Slack.GetAllWebsiteBySlackId(context) })
 }
 
 func addJWT(g *echo.Group, config *config.Сonfig) {
